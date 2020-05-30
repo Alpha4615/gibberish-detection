@@ -1,0 +1,38 @@
+{
+  "name": "gibberish-detective",
+  "version": "1.0.0",
+  "description": "Detects if a string appears to be gibberish, using markov-chaining",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "Alpha4615",
+  "license": "MIT",
+  "files": [
+    "data/model.json",
+    "index.js",
+    "LICENSE"
+  ],
+  "devDependencies": {
+    "chai": "^4.2.0",
+    "mocha": "^7.2.0"
+  },
+  "dependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Alpha4615/gibberish-detection.git"
+  },
+  "keywords": [
+    "gibberish",
+    "markov",
+    "language",
+    "phonetics"
+  ],
+  "bugs": {
+    "url": "https://github.com/Alpha4615/gibberish-detection/issues"
+  },
+  "homepage": "https://github.com/Alpha4615/gibberish-detection#readme"
+}
