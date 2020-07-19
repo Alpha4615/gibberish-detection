@@ -52,7 +52,6 @@ At train time:
 
 At run-time
 
-    let fs = require('fs');
     let myLearningModel = require('mymodel.json');
     let gibberish = require("gibberish-detector")({model: myLearningModel});
 
