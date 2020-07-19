@@ -32,7 +32,7 @@ For best results the training text used should be decently long (at least few me
 
 To create a new learning model, you must provide it with the aforementioned large sample of text to build the learning matrix, a sample of short lines of sentences that make sense, and a sample of lines made up of gibberish. It uses the last two data sets to form a threshold between gibberish and non-gibberish text.
 
-    let gibberish = require("gibberish-detector")();
+    let gibberish = require("gibberish-detective")();
     let fs = require('fs');
     let sample = fs.readFileSync('./data/good.txt', 'utf-8');
     let sample_good_small = fs.readFileSync('./data/good_sm.txt', 'utf-8');
