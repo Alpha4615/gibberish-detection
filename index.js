@@ -219,7 +219,7 @@ module.exports = function(config) {
 		throw new Error("config argument must be an object")
 	}
 
-	let	model = require(__dirname + "/data/model.json");
+	let	model = require("./data/model.json");
 
 	let defaultConfig = {
 		model: model,
