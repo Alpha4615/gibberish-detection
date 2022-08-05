@@ -122,7 +122,7 @@ const assignScore = (test, matrix, useCache = true) => {
 				modelCache[letterPair] = modelFind;
 			}
 		} else {
-			modelFind = modelFind = matrix.find(m => m.x == letterPair);
+			modelFind = matrix.find(m => m.x == letterPair);
 		}
 
 		pairCount++;
