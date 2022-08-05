@@ -1,6 +1,6 @@
 {
   "name": "gibberish-detective",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Detects if a string appears to be gibberish, using markov-chaining",
   "main": "index.js",
   "directories": {
