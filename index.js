@@ -1,20 +1,47 @@
 "use strict";
 
 /**
+ * Sanitizes a given text sample by removing line breaks, tabs, sentence terminators,
+ * converting double spaces to single spaces, normalizing non-Latin characters,
+ * and removing noise from the sample.
+ *
+ * @param {string} sample - The text sample to be sanitized.
+ * @returns {string} - The sanitized text sample.
+ */
+const sanitizeText = (sample) =>{
+	// remove all linebreaks, replace them with spaces
+	sample = sample.split("\r\n").join(" ");
+	sample = sample.split("\n").join(" ");
+	sample = sample.split("\t").join(" ");
+
+	// All sentence terminators (!,.,?,...) should be treated as whitespace
+	// Here, we care about words and word boundaries, not sentence boundaries.
+	// Put another way we want to see how often a letter might be the last letter of the word
+	// This will essentially merge the count for "this letter at end of sentence" and "this letter at end of word" which serves the same effect.
+	sample = sample.replace(/[!?.]/g, ' ');
+
+	// convert double spaces to single spaces
+	sample = sample.replace(/  +/g, ' ');
+
+	// normalize the text to take care of non-latin characters
+	sample = convertToLatinEquivalent(sample);
+
+	// regex pattern to eliminate noise from the sample
+	let pattern = /[0-9!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~]/g
+	sample = sample.replace(pattern, '');
+
+	return sample;
+}
+
+/**
  * Creates the training model using Markov Chaining that is later used to score suspect strings.
  * @param {String} sample A large block of "good" text where letter adjacency frequencies are calculated. This likely should be a long piece of literature
- * @param {String[]|String} goodLines A list of sentences that are example of "good" letter arrangements. These lines are individually scored to calculate a tolerance threshold. 
+ * @param {String[]|String} goodLines A list of sentences that are example of "good" letter arrangements. These lines are individually scored to calculate a tolerance threshold.
  * @param {String[]|String} badLines A list of sentences that are example of "bad" letter arrangements (e.g., letter mashing) These lines are individually scored to calculate a tolerance threshold.
  * @returns {{matrix: [{x: String, y: Number}], baseline: {good: {min: Number, max: Number, avg: Number}, bad: {min: Number, max: Number, avg: Number}}}} The training model containing the the letter adjacency frequencies amd the baseline calculations for goodLines and badLines
  */
 const train = (sample, goodLines, badLines) => {
-
-	// remove all linebreaks, replace them with spaces
-	sample = sample.split("\n").join(" ");
-
-	// regex pattern to eliminate noise from the sample
-	let pattern = /[0-9a-zÀ-ÖØ-ö\\\/ !?.,'"'@#$%^&*()\-+{[\]<>–—:;()]+/gsi
-	sample = sample.match(pattern).join('');
+	sample = sanitizeText(sample);
 
 	let split = sample.toLowerCase().split("");
 	let analysis = [];
@@ -45,16 +72,49 @@ const train = (sample, goodLines, badLines) => {
 
 	// convert a line-delimted string into an array
 	if (!Array.isArray(goodLines))
-		goodLines = goodLines.split("\n");
+		goodLines = goodLines.split("\n").map(x=>x.trim());
 	if (!Array.isArray(badLines))
-		badLines = badLines.split("\n");
+		badLines = badLines.split("\n").map(x=>x.trim());
 
 	// get aggregate information about the good samples and bad samples to form the baselines (so threshold can later be calculated)
 	result.baseline.good = scoreLines(goodLines, analysis)
 	result.baseline.bad = scoreLines(badLines, analysis)
-	
+
 	return result;
 }
+
+/**
+ * Converts a given string to its Latin equivalent by removing diacritics and non-Latin characters.
+ *
+ * @param {string} inputString - The input string to be converted.
+ * @returns {string} - The Latin equivalent of the input string.
+ */
+const convertToLatinEquivalent = (inputString) => {
+    // Remove diacritics using normalize
+    const normalizedString = inputString.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    // Use a regular expression to replace non-Latin characters
+    const latinEquivalentString = normalizedString.replace(/[^\x00-\x7F]/g, '');
+
+    return latinEquivalentString;
+};
+
+/**
+ * Converts a JSON array of objects into a JavaScript Map.
+ * Each object in the array is expected to have 'x' and 'y' properties.
+ * The 'x' property becomes the key in the Map, and the 'y' property becomes the value.
+ *
+ * @param {Array<{x: string, y: number}>} jsonArray - The input JSON array to convert.
+ * @returns {Map<string, number>} - A JavaScript Map object where the keys are the 'x' properties from the input array,
+ * and the values are the 'y' properties from the input array.
+ */
+const convertJSONMatrixIntoMap = (jsonArray) => {
+    const map = new Map();
+    jsonArray.forEach(item => {
+        map.set(item.x, item.y);
+    });
+    return map;
+};
 
 /**
  * Returns the threshold that a test score must reach in order to determine that it's not likely gibberish
@@ -65,45 +125,36 @@ const calculateThreshold = (model) => (model.baseline.good.min + model.baseline.
 
 /**
  * Scores a series of lines against the model and returns an aggregate calculation of minimum score, maximum score, and average score.
- * @param {[String]} lines 
- * @param {*} model 
+ * @param {[String]} lines
+ * @param {*} model
  */
 const scoreLines = (lines, model) => {
-	let runningScore = 0;
-	let minimum;
-	let maximum;
-	for (let x = 0; x < lines.length; x++) {
-		lines[x] = String(lines[x]).trim();
-		let score = assignScore(lines[x], model);
+	const scores = lines.map(line => assignScore(String(line).trim(), model));
+	const min = Math.min(...scores);
+	const max = Math.max(...scores);
+	const average = scores.reduce((a,b) => a + b, 0) / scores.length;
 
-		runningScore += score;
-
-		if (!minimum || score < minimum) {
-			minimum = score;
-		}
-		if (!maximum || score > maximum) {
-			maximum = score;
-		}
-	}
-
-	return {min: minimum, max: maximum, avg: (runningScore/lines.length)}
+	return {min, max, avg: average};
 }
 
 /**
  * Assesses a score of a suspect string
- * @param {String} test The string being scored 
+ * @param {String} test The string being scored
  * @param {*} matrix The matrix aspect of the learning model that contains the letter adjacency frequencies
  * @param {Boolean} [useCache=true] Determines if caching should be used when a letter pair has been discovered from the training model. Setting to true is notably faster but could theoretically higher memory cost on tests against (much) longer strings
  * @returns {Number} The average letter-adjacency score of each letter pairing, derived from the training model
  */
 const assignScore = (test, matrix, useCache = true) => {
 	// Replace line breaks with spaces
-	test = String(test).split("\n").join(" ");
-	let modelCache = {};
+	const sanitized = sanitizeText(test);
+	test = String(sanitized).split("\n").join(" ");
+	const modelCache = new Map();
 
 	let split = test.toLowerCase().split("");
 	let pairCount = 0;
 	let totalScore = 0;
+
+	const matrixMap = convertJSONMatrixIntoMap(matrix);
 
 	for (let x = 0; x < split.length; x++) {
 		// don't do anything if the letter is by itself (last letter of the sample)
@@ -111,25 +162,23 @@ const assignScore = (test, matrix, useCache = true) => {
 			break;
 		}
 
+		let letterPair = `${split[x]}${split[x + 1]}`;
 		let modelFind;
-		let letterPair = String(split[x])+String(split[x+1]);
-		
-		if (useCache) {
-			if (modelCache[letterPair]) {
-				modelFind = modelCache[letterPair];
-			} else {
-				modelFind = matrix.find(m => m.x == letterPair);
-				modelCache[letterPair] = modelFind;
+
+		if (useCache && modelCache.has(letterPair)) {
+			modelFind = modelCache.get(letterPair);
+        } else if (matrixMap.has(letterPair)) {
+			modelFind = matrixMap.get(letterPair);
+			if (useCache) {
+				modelCache.set(letterPair, modelFind);
 			}
-		} else {
-			modelFind = modelFind = matrix.find(m => m.x == letterPair);
 		}
 
 		pairCount++;
 
 		// if match was found, add it to total score count
 		if (modelFind) {
-			totalScore += modelFind.y;
+			totalScore += modelFind;
 		}
 	}
 
@@ -138,28 +187,37 @@ const assignScore = (test, matrix, useCache = true) => {
 }
 
 /**
- * 
+ *
  * @param {String} test The suspect string
- * @param {*} model 
+ * @param {*} model
  * @param {function} thresholdFn The function that calculates the minimum score before gibberish is declared
  * @param {Boolean} [useCache=true] Determines if caching should be used when a letter pair has been discovered from the training model. Setting to true is notably faster but could theoretically higher memory cost on tests against (much) longer strings
  */
-const testGibberish = (test,model, thresholdFn, useCache = true) => { 
+const testGibberish = (test,model, thresholdFn, useCache = true) => {
 	thresholdFn = thresholdFn || calculateThreshold;
-	return assignScore(test, model.matrix, useCache) < thresholdFn(model);
+	const score = assignScore(test, model.matrix, useCache);
+	const threshold = thresholdFn(model);
+	return score <= threshold;
 }
 
+/**
+ * Validates the structure of a matrix used in the learning model.
+ * The matrix is expected to be an array of objects, each containing a pair of letters (x) and their frequency (y).
+ *
+ * @param {[{x: String, y: Number}]} matrix - The matrix to validate.
+ * @returns {boolean} - Returns true if the matrix is valid, false otherwise.
+ */
 const isValidMatrix = (matrix) => {
 
 	if (!matrix || !Array.isArray(matrix))
 		return false;
 
 	let errorState = false;
-	
+
 	matrix.some(m => {
 		if (typeof m !== "object" || Array.isArray(m))
 			return errorState = true;
-		
+
 		if (typeof m.x != "string" || m.x.length != 2)
 			return errorState = true;
 
@@ -169,9 +227,10 @@ const isValidMatrix = (matrix) => {
 
 	return !errorState;
 }
+
 /**
  * Tests for valid structure of a learning model
- * @param {{}} model 
+ * @param {{}} model
  */
 const isValidModel = model => {
 	if (!model || typeof model !== "object" || Array.isArray(model))
@@ -179,10 +238,10 @@ const isValidModel = model => {
 
 	if (!isValidMatrix(model.matrix))
 		return false;
-	
+
 	if (!model.baseline || typeof model.baseline !== "object" || Array.isArray(model.baseline))
 		return false;
-	
+
 	if (!model.baseline.good || typeof model.baseline.good !== "object" || Array.isArray(model.baseline.good))
 		return false;
 
@@ -199,6 +258,13 @@ const isValidModel = model => {
 }
 
 
+/**
+ * Validates the configuration object passed to the factory function.
+ * Throws an error if the configuration is invalid.
+ *
+ * @param {Object} config - The configuration object to validate.
+ * @throws {Error} - Throws an error if the configuration is invalid.
+ */
 const testConfig = config => {
 	if (!isValidModel(config.model)) {
 		throw new Error("model provided is not a valid structure.");
@@ -227,7 +293,7 @@ module.exports = function(config) {
 		useCache: true,
 	}
 
-	config = config ? Object.assign(defaultConfig, config) : defaultConfig;
+	config = {...defaultConfig,...config};
 
 	// do sanity tests on the config
 	testConfig(config);
@@ -236,9 +302,9 @@ module.exports = function(config) {
 		train: train,
 
 		/**
-		 * 
-		 * @param {string} name The name of the configuration property being set 
-		 * @param {*} value 
+		 *
+		 * @param {string} name The name of the configuration property being set
+		 * @param {*} value
 		 */
 		set: function (name, value) {
 			// create a config clone so we can make sure it's valid
@@ -262,8 +328,8 @@ module.exports = function(config) {
 		isValidModel: isValidModel,
 
 		/**
-		 * Provides a numerical score, averaging from the individual score of each letter-pair, based off the scores in the matrix  
-		 * @param {string} testString 
+		 * Provides a numerical score, averaging from the individual score of each letter-pair, based off the scores in the matrix
+		 * @param {string} testString
 		 * @param {[{x: String, y: Number}]} overrideMatrix Uses the matrix in the configuration model if non is provided
 		 * @returns {number}
 		 */
@@ -281,12 +347,13 @@ module.exports = function(config) {
 				}
 			}
 
-			return  assignScore(testString, overrideMatrix || config.model.matrix, config.useCache);		
+			return  assignScore(testString, overrideMatrix || config.model.matrix, config.useCache);
 		},
 
 	/**
 	 * @param {string} testString
 	 * @param {{matrix: [{x: String, y: Number}], baseline: {good: {min: Number, max: Number, avg: Number}, bad: {min: Number, max: Number, avg: Number}}}} overrideModel The model to use when making the determine. If none is provided, the model in the configuration is used.
+	 * @returns {boolean} True if gibberish, false if not gibberish
 	 */
 		detect: (testString, overrideModel = null) => {
 			if (overrideModel && !isValidModel(overrideModel)) {
