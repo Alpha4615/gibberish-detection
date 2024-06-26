@@ -72,9 +72,9 @@ const train = (sample, goodLines, badLines) => {
 
 	// convert a line-delimted string into an array
 	if (!Array.isArray(goodLines))
-		goodLines = goodLines.split("\n");
+		goodLines = goodLines.split("\n").map(x=>x.trim());
 	if (!Array.isArray(badLines))
-		badLines = badLines.split("\n");
+		badLines = badLines.split("\n").map(x=>x.trim());
 
 	// get aggregate information about the good samples and bad samples to form the baselines (so threshold can later be calculated)
 	result.baseline.good = scoreLines(goodLines, analysis)
