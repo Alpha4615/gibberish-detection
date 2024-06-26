@@ -98,24 +98,12 @@ const calculateThreshold = (model) => (model.baseline.good.min + model.baseline.
  * @param {*} model 
  */
 const scoreLines = (lines, model) => {
-	let runningScore = 0;
-	let minimum;
-	let maximum;
-	for (let x = 0; x < lines.length; x++) {
-		lines[x] = String(lines[x]).trim();
-		let score = assignScore(lines[x], model);
+	const scores = lines.map(line => assignScore(String(line).trim(), model));
+	const min = Math.min(...scores);
+	const max = Math.max(...scores);
+	const average = scores.reduce((a,b) => a + b, 0) / scores.length;
 
-		runningScore += score;
-
-		if (!minimum || score < minimum) {
-			minimum = score;
-		}
-		if (!maximum || score > maximum) {
-			maximum = score;
-		}
-	}
-
-	return {min: minimum, max: maximum, avg: (runningScore/lines.length)}
+	return {min, max, avg: average};
 }
 
 /**
@@ -175,7 +163,9 @@ const assignScore = (test, matrix, useCache = true) => {
  */
 const testGibberish = (test,model, thresholdFn, useCache = true) => { 
 	thresholdFn = thresholdFn || calculateThreshold;
-	return assignScore(test, model.matrix, useCache) < thresholdFn(model);
+	const score = assignScore(test, model.matrix, useCache);
+	const threshold = thresholdFn(model);
+	return score <= threshold;
 }
 
 const isValidMatrix = (matrix) => {
