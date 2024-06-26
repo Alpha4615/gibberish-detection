@@ -86,6 +86,23 @@ const convertToLatinEquivalent = (inputString) => {
 };
 
 /**
+ * Converts a JSON array of objects into a JavaScript Map.
+ * Each object in the array is expected to have 'x' and 'y' properties.
+ * The 'x' property becomes the key in the Map, and the 'y' property becomes the value.
+ * 
+ * @param {Array<{x: string, y: number}>} jsonArray - The input JSON array to convert.
+ * @returns {Map<string, number>} - A JavaScript Map object where the keys are the 'x' properties from the input array,
+ * and the values are the 'y' properties from the input array.
+ */
+const convertJSONMatrixIntoMap = (jsonArray) => {
+    const map = new Map();
+    jsonArray.forEach(item => {
+        map.set(item.x, item.y);
+    });
+    return map;
+};
+
+/**
  * Returns the threshold that a test score must reach in order to determine that it's not likely gibberish
  * @param {{matrix: [{x: String, y: Number}], baseline: {good: {min: Number, max: Number, avg: Number}, bad: {min: Number, max: Number, avg: Number}}}} model The training model to score against
  * @returns {Number} The average of the "good minimum" and the "bad maximum"
@@ -123,6 +140,8 @@ const assignScore = (test, matrix, useCache = true) => {
 	let pairCount = 0;
 	let totalScore = 0;
 
+	const matrixMap = convertJSONMatrixIntoMap(matrix);
+
 	for (let x = 0; x < split.length; x++) {
 		// don't do anything if the letter is by itself (last letter of the sample)
 		if (!split[x+1]) {
@@ -134,8 +153,8 @@ const assignScore = (test, matrix, useCache = true) => {
 		
 		if (useCache && modelCache.has(letterPair)) {
 			modelFind = modelCache.get(letterPair);
-        } else {
-			modelFind = matrix.find(m => m.x === letterPair);
+        } else if (matrixMap.has(letterPair)) {
+			modelFind = matrixMap.get(letterPair);
 			if (useCache) {
 				modelCache.set(letterPair, modelFind);
 			}
@@ -145,7 +164,7 @@ const assignScore = (test, matrix, useCache = true) => {
 
 		// if match was found, add it to total score count
 		if (modelFind) {
-			totalScore += modelFind.y;
+			totalScore += modelFind;
 		}
 	}
 
