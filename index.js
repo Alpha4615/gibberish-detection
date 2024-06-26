@@ -1,5 +1,30 @@
 "use strict";
 
+const sanitizeText = (sample) =>{
+	// remove all linebreaks, replace them with spaces
+	sample = sample.split("\r\n").join(" ");
+	sample = sample.split("\n").join(" ");
+	sample = sample.split("\t").join(" ");
+
+	// All sentence terminators (!,.,?,...) should be treated as whitespace
+	// Here, we care about words and word boundaries, not sentence boundaries.
+	// Put another way we want to see how often a letter might be the last letter of the word
+	// This will essentially merge the count for "this letter at end of sentence" and "this letter at end of word" which serves the same effect.
+	sample = sample.replace(/[!?.]/g, ' ');
+
+	// convert double spaces to single spaces
+	sample = sample.replace(/  +/g, ' ');
+
+	// normalize the text to take care of non-latin characters
+	sample = convertToLatinEquivalent(sample);
+
+	// regex pattern to eliminate noise from the sample
+	let pattern = /[0-9!"#$%&'()*+,-./:;<=>?@[\]^_`{|}~]/g
+	sample = sample.replace(pattern, '');
+
+	return sample;
+}
+
 /**
  * Creates the training model using Markov Chaining that is later used to score suspect strings.
  * @param {String} sample A large block of "good" text where letter adjacency frequencies are calculated. This likely should be a long piece of literature
@@ -8,13 +33,7 @@
  * @returns {{matrix: [{x: String, y: Number}], baseline: {good: {min: Number, max: Number, avg: Number}, bad: {min: Number, max: Number, avg: Number}}}} The training model containing the the letter adjacency frequencies amd the baseline calculations for goodLines and badLines
  */
 const train = (sample, goodLines, badLines) => {
-
-	// remove all linebreaks, replace them with spaces
-	sample = sample.split("\n").join(" ");
-
-	// regex pattern to eliminate noise from the sample
-	let pattern = /[0-9a-zÀ-ÖØ-ö\\\/ !?.,'"'@#$%^&*()\-+{[\]<>–—:;()]+/gsi
-	sample = sample.match(pattern).join('');
+	sample = sanitizeText(sample);
 
 	let split = sample.toLowerCase().split("");
 	let analysis = [];
@@ -55,6 +74,16 @@ const train = (sample, goodLines, badLines) => {
 	
 	return result;
 }
+
+const convertToLatinEquivalent = (inputString) => {
+    // Remove diacritics using normalize
+    const normalizedString = inputString.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+    // Use a regular expression to replace non-Latin characters
+    const latinEquivalentString = normalizedString.replace(/[^\x00-\x7F]/g, '');
+
+    return latinEquivalentString;
+};
 
 /**
  * Returns the threshold that a test score must reach in order to determine that it's not likely gibberish
@@ -98,8 +127,8 @@ const scoreLines = (lines, model) => {
  */
 const assignScore = (test, matrix, useCache = true) => {
 	// Replace line breaks with spaces
-	test = String(test).split("\n").join(" ");
-	let modelCache = {};
+	const sanitized = sanitizeText(test);
+	test = String(sanitized).split("\n").join(" ");
 
 	let split = test.toLowerCase().split("");
 	let pairCount = 0;
