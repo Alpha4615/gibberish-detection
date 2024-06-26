@@ -245,7 +245,7 @@ module.exports = function(config) {
 		useCache: true,
 	}
 
-	config = config ? Object.assign(defaultConfig, config) : defaultConfig;
+	config = {...defaultConfig,...config};
 
 	// do sanity tests on the config
 	testConfig(config);
