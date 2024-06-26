@@ -1,5 +1,13 @@
 "use strict";
 
+/**
+ * Sanitizes a given text sample by removing line breaks, tabs, sentence terminators, 
+ * converting double spaces to single spaces, normalizing non-Latin characters, 
+ * and removing noise from the sample.
+ * 
+ * @param {string} sample - The text sample to be sanitized.
+ * @returns {string} - The sanitized text sample.
+ */
 const sanitizeText = (sample) =>{
 	// remove all linebreaks, replace them with spaces
 	sample = sample.split("\r\n").join(" ");
@@ -75,6 +83,12 @@ const train = (sample, goodLines, badLines) => {
 	return result;
 }
 
+/**
+ * Converts a given string to its Latin equivalent by removing diacritics and non-Latin characters.
+ * 
+ * @param {string} inputString - The input string to be converted.
+ * @returns {string} - The Latin equivalent of the input string.
+ */
 const convertToLatinEquivalent = (inputString) => {
     // Remove diacritics using normalize
     const normalizedString = inputString.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -186,6 +200,13 @@ const testGibberish = (test,model, thresholdFn, useCache = true) => {
 	return score <= threshold;
 }
 
+/**
+ * Validates the structure of a matrix used in the learning model.
+ * The matrix is expected to be an array of objects, each containing a pair of letters (x) and their frequency (y).
+ * 
+ * @param {[{x: String, y: Number}]} matrix - The matrix to validate.
+ * @returns {boolean} - Returns true if the matrix is valid, false otherwise.
+ */
 const isValidMatrix = (matrix) => {
 
 	if (!matrix || !Array.isArray(matrix))
@@ -206,6 +227,7 @@ const isValidMatrix = (matrix) => {
 
 	return !errorState;
 }
+
 /**
  * Tests for valid structure of a learning model
  * @param {{}} model 
@@ -236,6 +258,13 @@ const isValidModel = model => {
 }
 
 
+/**
+ * Validates the configuration object passed to the factory function.
+ * Throws an error if the configuration is invalid.
+ * 
+ * @param {Object} config - The configuration object to validate.
+ * @throws {Error} - Throws an error if the configuration is invalid.
+ */
 const testConfig = config => {
 	if (!isValidModel(config.model)) {
 		throw new Error("model provided is not a valid structure.");
@@ -324,6 +353,7 @@ module.exports = function(config) {
 	/**
 	 * @param {string} testString
 	 * @param {{matrix: [{x: String, y: Number}], baseline: {good: {min: Number, max: Number, avg: Number}, bad: {min: Number, max: Number, avg: Number}}}} overrideModel The model to use when making the determine. If none is provided, the model in the configuration is used.
+	 * @returns {boolean} True if gibberish, false if not gibberish
 	 */
 		detect: (testString, overrideModel = null) => {
 			if (overrideModel && !isValidModel(overrideModel)) {
