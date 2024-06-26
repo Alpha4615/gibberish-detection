@@ -117,6 +117,7 @@ const assignScore = (test, matrix, useCache = true) => {
 	// Replace line breaks with spaces
 	const sanitized = sanitizeText(test);
 	test = String(sanitized).split("\n").join(" ");
+	const modelCache = new Map();
 
 	let split = test.toLowerCase().split("");
 	let pairCount = 0;
@@ -128,18 +129,16 @@ const assignScore = (test, matrix, useCache = true) => {
 			break;
 		}
 
+		let letterPair = `${split[x]}${split[x + 1]}`;
 		let modelFind;
-		let letterPair = String(split[x])+String(split[x+1]);
 		
-		if (useCache) {
-			if (modelCache[letterPair]) {
-				modelFind = modelCache[letterPair];
-			} else {
-				modelFind = matrix.find(m => m.x == letterPair);
-				modelCache[letterPair] = modelFind;
+		if (useCache && modelCache.has(letterPair)) {
+			modelFind = modelCache.get(letterPair);
+        } else {
+			modelFind = matrix.find(m => m.x === letterPair);
+			if (useCache) {
+				modelCache.set(letterPair, modelFind);
 			}
-		} else {
-			modelFind = matrix.find(m => m.x == letterPair);
 		}
 
 		pairCount++;
