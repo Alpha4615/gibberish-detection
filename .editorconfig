@@ -9,3 +9,6 @@ trim_trailing_whitespace = true
 [package.json]
 indent_size = 2
 indent_style = space
+
+[data/*.txt]
+insert_final_newline = false
