@@ -41,6 +41,15 @@ describe("Gibberish-Detector Tests", () => {
 		it("Detect As Gibberish: "+testGibString, () => expect(detector.detect(testGibString)).to.be.true)
 	});
 
+	describe("Input Validity", function() {
+		let theseShouldntThrow = ['hello', '', false, null, undefined]
+		let theseShouldThrow = [[], {}, ()=>{}];
+
+		theseShouldntThrow.forEach(s => it(`Should not throw exception: ${JSON.stringify(s)}:${typeof s}`, () => expect(() => detector.detect(s)).to.not.throw()));
+		theseShouldThrow.forEach(s => it(`Should throw exception: ${JSON.stringify(s)}:${typeof s}`, () => expect(() => detector.detect(s)).to.throw()));
+
+	});
+
 	describe("OTF model training", function() {
 		let trainingString = "Hello, I am a programmer that enjoys coding and doing cool things. On Saturdays, especially, I do go to the beach and run some laps along the shore. It is a thoroughly entertaining thing to do. I don't particular enjoy horror moves and I'm not a fan of typing long boilerplate sentences. In normal situations, you would use a few megabytes worth of text, you see. But for the purposes of unit testing, I just need to it to be long enough to get a good separation between the good and base baselines. Ya know?"
 		let badSamples = ['xcxmxnfzxdzxdfmahtuaewitsp', 'kjaanbcasofwetoaretioafsaio', 'xtiamnadmgtae'];
@@ -57,7 +66,7 @@ describe("Gibberish-Detector Tests", () => {
 
 		let goodUseCache = true;
 		let badUseCache = "What?";
-	
+
 		let goodConfig = {thresholdFn: goodThresholdFn, model: goodModel, useCache: goodUseCache}
 
 		it("Default configuration initializes", () => {
@@ -67,7 +76,7 @@ describe("Gibberish-Detector Tests", () => {
 			expect(() => R(goodConfig)).to.not.throw();
 		})
 
-		
+
 		it("Run-time set of thresholdFn carries through", () => {
 			expect(R().set('thresholdFn', goodThresholdFn).get("thresholdFn")).to.equal(goodThresholdFn);
 		})

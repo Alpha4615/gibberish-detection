@@ -9,6 +9,13 @@
  * @returns {string} - The sanitized text sample.
  */
 const sanitizeText = (sample) =>{
+
+	// if falsey, cast to empty string
+	sample = sample || '';
+
+	if (typeof sample !=='string') {
+		throw new Error("Input sample must be a string");
+  }
 	// remove all linebreaks, replace them with spaces
 	sample = sample.split("\r\n").join(" ");
 	sample = sample.split("\n").join(" ");

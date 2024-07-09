@@ -1,4 +1,7 @@
-# 1.2.0
+# 1.1.1
+	- If test input string is falsey, (null/undefined/false), it will be coerced into a string. If derived test string does not end up as a type of string, it will throw an exception.
+
+# 1.1.0
  - Overhauled model building to properly sanitize string of noise and to build more accurate and useful models
  - Replaced shipped model with newly built one from the training improvements
  - Refactored caching system to use Maps instead of Array of objects.
