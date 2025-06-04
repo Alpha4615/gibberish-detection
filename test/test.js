@@ -41,14 +41,20 @@ describe("Gibberish-Detector Tests", () => {
 		it("Detect As Gibberish: "+testGibString, () => expect(detector.detect(testGibString)).to.be.true)
 	});
 
-	describe("Input Validity", function() {
-		let theseShouldntThrow = ['hello', '', false, null, undefined]
-		let theseShouldThrow = [[], {}, ()=>{}];
+        describe("Input Validity", function() {
+                let theseShouldntThrow = ['hello', '', false, null, undefined]
+                let theseShouldThrow = [[], {}, ()=>{}];
 
 		theseShouldntThrow.forEach(s => it(`Should not throw exception: ${JSON.stringify(s)}:${typeof s}`, () => expect(() => detector.detect(s)).to.not.throw()));
-		theseShouldThrow.forEach(s => it(`Should throw exception: ${JSON.stringify(s)}:${typeof s}`, () => expect(() => detector.detect(s)).to.throw()));
+                theseShouldThrow.forEach(s => it(`Should throw exception: ${JSON.stringify(s)}:${typeof s}`, () => expect(() => detector.detect(s)).to.throw()));
 
-	});
+        });
+
+        describe("Edge Cases", function() {
+                it("Single character strings return a numeric score", () => {
+                        expect(detector.assignScore('a')).to.be.a('number');
+                });
+        });
 
 	describe("OTF model training", function() {
 		let trainingString = "Hello, I am a programmer that enjoys coding and doing cool things. On Saturdays, especially, I do go to the beach and run some laps along the shore. It is a thoroughly entertaining thing to do. I don't particular enjoy horror moves and I'm not a fan of typing long boilerplate sentences. In normal situations, you would use a few megabytes worth of text, you see. But for the purposes of unit testing, I just need to it to be long enough to get a good separation between the good and base baselines. Ya know?"
