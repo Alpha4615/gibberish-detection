@@ -189,8 +189,12 @@ const assignScore = (test, matrix, useCache = true) => {
 		}
 	}
 
-	// return average
-	return totalScore / pairCount;
+        // return average -- if there are no valid pairs, score should be zero
+        if (pairCount === 0) {
+                return 0;
+        }
+
+        return totalScore / pairCount;
 }
 
 /**
