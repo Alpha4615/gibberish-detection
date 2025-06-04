@@ -292,9 +292,9 @@ const testConfig = config => {
 
 // exposes factory
 module.exports = function(config) {
-	if (config && typeof config !== "object" && !Array.isArray(config)) {
-		throw new Error("config argument must be an object")
-	}
+       if (config && (typeof config !== "object" || Array.isArray(config))) {
+               throw new Error("config argument must be an object")
+       }
 
 	let	model = require("./data/model.json");
 
